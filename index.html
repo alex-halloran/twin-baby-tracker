@@ -15,6 +15,15 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .milestone-item {
+            transition: all 0.2s ease;
+        }
+        .milestone-achieved {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        .milestone-upcoming {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
@@ -47,6 +56,14 @@
             </div>
         </div>
 
+        <!-- Milestones Section -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6" id="milestones-panel" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">🎯 Upcoming Milestones</h3>
+            <div id="milestones-list" class="space-y-3">
+                <!-- Milestones will be populated here -->
+            </div>
+        </div>
+
         <!-- Quick Actions -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-6" id="actions-panel" style="display: none;">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
@@ -54,7 +71,7 @@
                 <button onclick="logActivity('feeding')" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg font-medium transition-colors">
                     🍼 Feed
                 </button>
-                <button onclick="logActivity('diaper')" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg font-medium transition-colors">
+                <button onclick="showDiaperModal()" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg font-medium transition-colors">
                     👶 Diaper
                 </button>
                 <button onclick="logActivity('sleep')" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg font-medium transition-colors">
@@ -85,7 +102,30 @@
             </div>
         </div>
 
-        <!-- Settings Modal (Hidden by default) -->
+        <!-- Diaper Modal -->
+        <div id="diaper-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-xl p-6 w-full max-w-md">
+                    <h3 class="text-lg font-semibold mb-4">👶 Diaper Change</h3>
+                    <div class="space-y-3">
+                        <button onclick="logDiaper('wet')" class="w-full bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-lg font-medium transition-colors">
+                            💧 Wet Only
+                        </button>
+                        <button onclick="logDiaper('dirty')" class="w-full bg-amber-600 hover:bg-amber-700 text-white p-4 rounded-lg font-medium transition-colors">
+                            💩 Stool/Dirty
+                        </button>
+                        <button onclick="logDiaper('both')" class="w-full bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-lg font-medium transition-colors">
+                            💧💩 Wet + Dirty
+                        </button>
+                    </div>
+                    <button onclick="closeDiaperModal()" class="w-full mt-4 bg-gray-300 hover:bg-gray-400 text-gray-700 p-3 rounded-lg font-medium">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
         <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
             <div class="flex items-center justify-center min-h-screen p-4">
                 <div class="bg-white rounded-xl p-6 w-full max-w-md">
@@ -135,6 +175,36 @@
         };
         let activities = [];
 
+        // Developmental milestones data
+        const milestones = [
+            // 0-3 months
+            { ageWeeks: 2, title: "First Social Smile", description: "Responds to your face with smiles" },
+            { ageWeeks: 6, title: "Holds Head Up", description: "Can lift head when lying on tummy" },
+            { ageWeeks: 8, title: "Follows Objects", description: "Tracks moving objects with eyes" },
+            { ageWeeks: 12, title: "Laughs Out Loud", description: "First genuine laughs and giggles" },
+            
+            // 3-6 months
+            { ageWeeks: 16, title: "Rolls Over", description: "Rolls from tummy to back or back to tummy" },
+            { ageWeeks: 20, title: "Sits With Support", description: "Can sit upright with help" },
+            { ageWeeks: 22, title: "Reaches for Objects", description: "Deliberately reaches for and grasps toys" },
+            { ageWeeks: 24, title: "Babbles Consonants", description: "Says 'ba-ba', 'da-da', 'ma-ma'" },
+            
+            // 6-12 months
+            { ageWeeks: 28, title: "Sits Without Support", description: "Sits independently without falling over" },
+            { ageWeeks: 32, title: "Crawls", description: "Moves forward on hands and knees" },
+            { ageWeeks: 36, title: "Pulls to Stand", description: "Uses furniture to pull up to standing" },
+            { ageWeeks: 40, title: "Says First Words", description: "Uses 'mama' or 'dada' meaningfully" },
+            { ageWeeks: 44, title: "Cruises", description: "Walks while holding onto furniture" },
+            { ageWeeks: 48, title: "Waves Bye-Bye", description: "Waves and understands simple gestures" },
+            { ageWeeks: 52, title: "First Steps", description: "Takes first independent steps" },
+            
+            // 12-18 months
+            { ageWeeks: 60, title: "Walks Independently", description: "Walks confidently without support" },
+            { ageWeeks: 64, title: "Says 5-10 Words", description: "Has a vocabulary of 5-10 clear words" },
+            { ageWeeks: 72, title: "Points to Body Parts", description: "Can point to nose, eyes, mouth when asked" },
+            { ageWeeks: 78, title: "Follows Simple Commands", description: "Understands and follows one-step instructions" }
+        ];
+
         // Initialize app
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
@@ -146,7 +216,6 @@
             document.getElementById('baby1-card').addEventListener('click', () => selectBaby('baby1'));
             document.getElementById('baby2-card').addEventListener('click', () => selectBaby('baby2'));
             
-            // Add enter key support for custom notes
             document.getElementById('custom-note').addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     logCustomNote();
@@ -158,6 +227,8 @@
             selectedBaby = babyId;
             updateUI();
             document.getElementById('actions-panel').style.display = 'block';
+            document.getElementById('milestones-panel').style.display = 'block';
+            updateMilestones();
         }
 
         function logActivity(type) {
@@ -175,8 +246,42 @@
             saveData();
             updateActivityLog();
             
-            // Show success feedback
             showToast(getActivityEmoji(type) + ' Logged for ' + babies[selectedBaby].name);
+        }
+
+        function showDiaperModal() {
+            if (!selectedBaby) return;
+            document.getElementById('diaper-modal').classList.remove('hidden');
+        }
+
+        function closeDiaperModal() {
+            document.getElementById('diaper-modal').classList.add('hidden');
+        }
+
+        function logDiaper(type) {
+            if (!selectedBaby) return;
+            
+            const diaperTypes = {
+                'wet': { emoji: '💧', label: 'Wet' },
+                'dirty': { emoji: '💩', label: 'Dirty' },
+                'both': { emoji: '💧💩', label: 'Wet + Dirty' }
+            };
+            
+            const activity = {
+                id: Date.now(),
+                baby: selectedBaby,
+                type: 'diaper',
+                subtype: type,
+                timestamp: new Date(),
+                note: diaperTypes[type].label
+            };
+            
+            activities.unshift(activity);
+            saveData();
+            updateActivityLog();
+            closeDiaperModal();
+            
+            showToast(diaperTypes[type].emoji + ' Diaper logged for ' + babies[selectedBaby].name);
         }
 
         function logCustomNote() {
@@ -212,6 +317,15 @@
             return emojis[type] || '📝';
         }
 
+        function getDiaperEmoji(subtype) {
+            const emojis = {
+                'wet': '💧',
+                'dirty': '💩',
+                'both': '💧💩'
+            };
+            return emojis[subtype] || '👶';
+        }
+
         function formatTime(date) {
             return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
@@ -240,6 +354,54 @@
             if (days < 30) return `${days} days old`;
             if (days < 365) return `${Math.floor(days / 30)} months old`;
             return `${Math.floor(days / 365)} years old`;
+        }
+
+        function calculateAgeInWeeks(birthDate) {
+            if (!birthDate) return 0;
+            
+            const now = new Date();
+            const birth = new Date(birthDate);
+            const diff = now - birth;
+            return Math.floor(diff / (1000 * 60 * 60 * 24 * 7));
+        }
+
+        function updateMilestones() {
+            if (!selectedBaby || !babies[selectedBaby].birthDate) {
+                document.getElementById('milestones-list').innerHTML = '<div class="text-gray-500 text-center py-4">Set birth date to see milestones</div>';
+                return;
+            }
+
+            const ageInWeeks = calculateAgeInWeeks(babies[selectedBaby].birthDate);
+            const relevantMilestones = milestones.filter(m => 
+                m.ageWeeks >= ageInWeeks && m.ageWeeks <= ageInWeeks + 12
+            ).slice(0, 3);
+
+            if (relevantMilestones.length === 0) {
+                document.getElementById('milestones-list').innerHTML = '<div class="text-gray-500 text-center py-4">No upcoming milestones in the next 3 months</div>';
+                return;
+            }
+
+            const milestonesHTML = relevantMilestones.map(milestone => {
+                const weeksUntil = milestone.ageWeeks - ageInWeeks;
+                const isReached = weeksUntil <= 0;
+                
+                return `
+                    <div class="milestone-item p-4 rounded-lg text-white ${isReached ? 'milestone-achieved' : 'milestone-upcoming'}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-semibold">${milestone.title}</h4>
+                            <span class="text-sm opacity-90">
+                                ${isReached ? '✅ Reached!' : `${weeksUntil} weeks`}
+                            </span>
+                        </div>
+                        <p class="text-sm opacity-90">${milestone.description}</p>
+                        <div class="text-xs opacity-75 mt-2">
+                            Expected around ${milestone.ageWeeks} weeks old
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById('milestones-list').innerHTML = milestonesHTML;
         }
 
         function updateUI() {
@@ -275,21 +437,31 @@
                 return;
             }
             
-            const recentActivities = activities.slice(0, 20); // Show last 20 activities
+            const recentActivities = activities.slice(0, 20);
             
             logContainer.innerHTML = recentActivities.map(activity => {
                 const babyName = babies[activity.baby].name;
                 const babyColor = activity.baby === 'baby1' ? 'text-pink-600' : 'text-blue-600';
                 
+                let emoji, displayText;
+                if (activity.type === 'diaper' && activity.subtype) {
+                    emoji = getDiaperEmoji(activity.subtype);
+                    displayText = `Diaper - ${activity.note}`;
+                } else if (activity.type === 'note') {
+                    emoji = getActivityEmoji(activity.type);
+                    displayText = activity.note;
+                } else {
+                    emoji = getActivityEmoji(activity.type);
+                    displayText = activity.type.charAt(0).toUpperCase() + activity.type.slice(1);
+                }
+                
                 return `
                     <div class="activity-item flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div class="flex items-center gap-3">
-                            <span class="text-xl">${getActivityEmoji(activity.type)}</span>
+                            <span class="text-xl">${emoji}</span>
                             <div>
                                 <div class="font-medium ${babyColor}">${babyName}</div>
-                                <div class="text-sm text-gray-600">
-                                    ${activity.type === 'note' ? activity.note : activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
-                                </div>
+                                <div class="text-sm text-gray-600">${displayText}</div>
                             </div>
                         </div>
                         <div class="text-xs text-gray-500 text-right">
@@ -302,13 +474,11 @@
         }
 
         function showToast(message) {
-            // Create toast element
             const toast = document.createElement('div');
             toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
             toast.textContent = message;
             document.body.appendChild(toast);
             
-            // Remove after 3 seconds
             setTimeout(() => {
                 toast.remove();
             }, 3000);
@@ -334,6 +504,7 @@
             
             saveData();
             updateUI();
+            updateMilestones();
             closeSettings();
             showToast('Settings saved!');
         }
