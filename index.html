@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twin Baby Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .baby-card { transition: all 0.2s ease; }
+        .baby-card:hover { transform: translateY(-2px); }
+        .activity-item { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-purple-50 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-md">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">👶 Twin Tracker</h1>
+            <p class="text-gray-600">Keep track of your little ones</p>
+        </div>
+
+        <!-- Baby Selection -->
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <div id="baby1-card" class="baby-card bg-pink-100 p-4 rounded-xl border-2 border-pink-200 cursor-pointer text-center">
+                <div class="text-2xl mb-2">👧</div>
+                <div class="font-semibold text-pink-800" id="baby1-name">Baby A</div>
+                <div class="text-sm text-pink-600 mt-1" id="baby1-age">0 days old</div>
+            </div>
+            <div id="baby2-card" class="baby-card bg-blue-100 p-4 rounded-xl border-2 border-blue-200 cursor-pointer text-center">
+                <div class="text-2xl mb-2">👦</div>
+                <div class="font-semibold text-blue-800" id="baby2-name">Baby B</div>
+                <div class="text-sm text-blue-600 mt-1" id="baby2-age">0 days old</div>
+            </div>
+        </div>
+
+        <!-- Currently Selected Baby -->
+        <div class="bg-white p-4 rounded-xl shadow-lg mb-6">
+            <div class="text-center">
+                <h2 class="text-lg font-semibold text-gray-800 mb-2">Tracking for</h2>
+                <div class="text-2xl font-bold" id="selected-baby-display">Select a baby</div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6" id="actions-panel" style="display: none;">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="logActivity('feeding')" class="bg-green-500 hover:bg-green-600 text-white p-4 rounded-lg font-medium transition-colors">
+                    🍼 Feed
+                </button>
+                <button onclick="logActivity('diaper')" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-lg font-medium transition-colors">
+                    👶 Diaper
+                </button>
+                <button onclick="logActivity('sleep')" class="bg-purple-500 hover:bg-purple-600 text-white p-4 rounded-lg font-medium transition-colors">
+                    😴 Sleep
+                </button>
+                <button onclick="logActivity('wake')" class="bg-orange-500 hover:bg-orange-600 text-white p-4 rounded-lg font-medium transition-colors">
+                    👀 Wake
+                </button>
+            </div>
+            
+            <!-- Custom Note -->
+            <div class="mt-4">
+                <input type="text" id="custom-note" placeholder="Add a note..." 
+                       class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <button onclick="logCustomNote()" class="w-full mt-2 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-medium transition-colors">
+                    📝 Add Note
+                </button>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="bg-white rounded-xl shadow-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Recent Activity</h3>
+            <div id="activity-log" class="space-y-3">
+                <div class="text-gray-500 text-center py-8">
+                    No activities logged yet. Select a baby and start tracking!
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal (Hidden by default) -->
+        <div id="settings-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+            <div class="flex items-center justify-center min-h-screen p-4">
+                <div class="bg-white rounded-xl p-6 w-full max-w-md">
+                    <h3 class="text-lg font-semibold mb-4">Baby Settings</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Baby 1 Name</label>
+                            <input type="text" id="baby1-name-input" class="w-full p-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Baby 1 Birth Date</label>
+                            <input type="date" id="baby1-birth-input" class="w-full p-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Baby 2 Name</label>
+                            <input type="text" id="baby2-name-input" class="w-full p-2 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Baby 2 Birth Date</label>
+                            <input type="date" id="baby2-birth-input" class="w-full p-2 border border-gray-300 rounded-lg">
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-6">
+                        <button onclick="saveSettings()" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white p-3 rounded-lg font-medium">
+                            Save
+                        </button>
+                        <button onclick="closeSettings()" class="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 p-3 rounded-lg font-medium">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Button -->
+        <button onclick="openSettings()" class="fixed bottom-4 right-4 bg-gray-600 hover:bg-gray-700 text-white p-3 rounded-full shadow-lg">
+            ⚙️
+        </button>
+    </div>
+
+    <script>
+        // App State
+        let selectedBaby = null;
+        let babies = {
+            baby1: { name: 'Baby A', birthDate: null },
+            baby2: { name: 'Baby B', birthDate: null }
+        };
+        let activities = [];
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadData();
+            updateUI();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('baby1-card').addEventListener('click', () => selectBaby('baby1'));
+            document.getElementById('baby2-card').addEventListener('click', () => selectBaby('baby2'));
+            
+            // Add enter key support for custom notes
+            document.getElementById('custom-note').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    logCustomNote();
+                }
+            });
+        }
+
+        function selectBaby(babyId) {
+            selectedBaby = babyId;
+            updateUI();
+            document.getElementById('actions-panel').style.display = 'block';
+        }
+
+        function logActivity(type) {
+            if (!selectedBaby) return;
+            
+            const activity = {
+                id: Date.now(),
+                baby: selectedBaby,
+                type: type,
+                timestamp: new Date(),
+                note: ''
+            };
+            
+            activities.unshift(activity);
+            saveData();
+            updateActivityLog();
+            
+            // Show success feedback
+            showToast(getActivityEmoji(type) + ' Logged for ' + babies[selectedBaby].name);
+        }
+
+        function logCustomNote() {
+            if (!selectedBaby) return;
+            
+            const noteText = document.getElementById('custom-note').value.trim();
+            if (!noteText) return;
+            
+            const activity = {
+                id: Date.now(),
+                baby: selectedBaby,
+                type: 'note',
+                timestamp: new Date(),
+                note: noteText
+            };
+            
+            activities.unshift(activity);
+            document.getElementById('custom-note').value = '';
+            saveData();
+            updateActivityLog();
+            
+            showToast('📝 Note added for ' + babies[selectedBaby].name);
+        }
+
+        function getActivityEmoji(type) {
+            const emojis = {
+                feeding: '🍼',
+                diaper: '👶',
+                sleep: '😴',
+                wake: '👀',
+                note: '📝'
+            };
+            return emojis[type] || '📝';
+        }
+
+        function formatTime(date) {
+            return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatRelativeTime(date) {
+            const now = new Date();
+            const diff = now - new Date(date);
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+            
+            if (minutes < 1) return 'Just now';
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            return `${days}d ago`;
+        }
+
+        function calculateAge(birthDate) {
+            if (!birthDate) return '0 days old';
+            
+            const now = new Date();
+            const birth = new Date(birthDate);
+            const diff = now - birth;
+            const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+            
+            if (days < 30) return `${days} days old`;
+            if (days < 365) return `${Math.floor(days / 30)} months old`;
+            return `${Math.floor(days / 365)} years old`;
+        }
+
+        function updateUI() {
+            // Update baby cards
+            document.getElementById('baby1-name').textContent = babies.baby1.name;
+            document.getElementById('baby2-name').textContent = babies.baby2.name;
+            document.getElementById('baby1-age').textContent = calculateAge(babies.baby1.birthDate);
+            document.getElementById('baby2-age').textContent = calculateAge(babies.baby2.birthDate);
+            
+            // Update selected baby display
+            if (selectedBaby) {
+                document.getElementById('selected-baby-display').textContent = babies[selectedBaby].name;
+                document.getElementById('selected-baby-display').className = selectedBaby === 'baby1' ? 'text-2xl font-bold text-pink-600' : 'text-2xl font-bold text-blue-600';
+            }
+            
+            // Update card selection styling
+            document.getElementById('baby1-card').className = selectedBaby === 'baby1' 
+                ? 'baby-card bg-pink-200 p-4 rounded-xl border-2 border-pink-400 cursor-pointer text-center shadow-lg'
+                : 'baby-card bg-pink-100 p-4 rounded-xl border-2 border-pink-200 cursor-pointer text-center';
+                
+            document.getElementById('baby2-card').className = selectedBaby === 'baby2'
+                ? 'baby-card bg-blue-200 p-4 rounded-xl border-2 border-blue-400 cursor-pointer text-center shadow-lg'
+                : 'baby-card bg-blue-100 p-4 rounded-xl border-2 border-blue-200 cursor-pointer text-center';
+            
+            updateActivityLog();
+        }
+
+        function updateActivityLog() {
+            const logContainer = document.getElementById('activity-log');
+            
+            if (activities.length === 0) {
+                logContainer.innerHTML = '<div class="text-gray-500 text-center py-8">No activities logged yet. Select a baby and start tracking!</div>';
+                return;
+            }
+            
+            const recentActivities = activities.slice(0, 20); // Show last 20 activities
+            
+            logContainer.innerHTML = recentActivities.map(activity => {
+                const babyName = babies[activity.baby].name;
+                const babyColor = activity.baby === 'baby1' ? 'text-pink-600' : 'text-blue-600';
+                
+                return `
+                    <div class="activity-item flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <span class="text-xl">${getActivityEmoji(activity.type)}</span>
+                            <div>
+                                <div class="font-medium ${babyColor}">${babyName}</div>
+                                <div class="text-sm text-gray-600">
+                                    ${activity.type === 'note' ? activity.note : activity.type.charAt(0).toUpperCase() + activity.type.slice(1)}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-right">
+                            <div>${formatTime(activity.timestamp)}</div>
+                            <div>${formatRelativeTime(activity.timestamp)}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function showToast(message) {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        function openSettings() {
+            document.getElementById('baby1-name-input').value = babies.baby1.name;
+            document.getElementById('baby1-birth-input').value = babies.baby1.birthDate || '';
+            document.getElementById('baby2-name-input').value = babies.baby2.name;
+            document.getElementById('baby2-birth-input').value = babies.baby2.birthDate || '';
+            document.getElementById('settings-modal').classList.remove('hidden');
+        }
+
+        function closeSettings() {
+            document.getElementById('settings-modal').classList.add('hidden');
+        }
+
+        function saveSettings() {
+            babies.baby1.name = document.getElementById('baby1-name-input').value || 'Baby A';
+            babies.baby1.birthDate = document.getElementById('baby1-birth-input').value;
+            babies.baby2.name = document.getElementById('baby2-name-input').value || 'Baby B';
+            babies.baby2.birthDate = document.getElementById('baby2-birth-input').value;
+            
+            saveData();
+            updateUI();
+            closeSettings();
+            showToast('Settings saved!');
+        }
+
+        // Data persistence
+        function saveData() {
+            const data = {
+                babies: babies,
+                activities: activities,
+                selectedBaby: selectedBaby
+            };
+            localStorage.setItem('twinBabyTracker', JSON.stringify(data));
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('twinBabyTracker');
+            if (saved) {
+                const data = JSON.parse(saved);
+                babies = data.babies || babies;
+                activities = data.activities || [];
+                selectedBaby = data.selectedBaby || null;
+                
+                // Convert timestamp strings back to Date objects
+                activities = activities.map(activity => ({
+                    ...activity,
+                    timestamp: new Date(activity.timestamp)
+                }));
+            }
+        }
+    </script>
+</body>
+</html>
